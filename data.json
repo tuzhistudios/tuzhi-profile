@@ -1,12 +1,12 @@
 {
   "profile": {
-    "name": "TuZhi Gamerz",
-    "username": "tuzhigamerz",
+    "name": "T U Z H I 🥀",
+    "username": "tuzhicodes",
     "nickname": "TuZhi Codes",
     "avatar": "https://i.imgur.com/8Km9tLL.png",
     "banner": "https://i.imgur.com/JQ9qR8a.jpeg",
     "status": {
-      "text": "Me Iz AFK | Ping karoge to Gali Khaoge",
+      "text": "I Am TuZhi Codes ♥️",
       "type": "dnd"
     },
     "badges": [
@@ -38,7 +38,7 @@
     ],
     "buttons": [
       {
-        "name": "YouTube @TuZhiCodes",
+        "name": "YouTube",
         "link": "https://youtube.com/@TuZhiCodes",
         "icon": "fab fa-youtube",
         "gradient": ["#ff0000", "#cc0000"],
@@ -60,6 +60,6 @@
       }
     ],
     "about": "🐰 A Dreamer Who Never Sleeps !! 🐰\nDeveloper | Gamer | Content Creator",
-    "footer": "© 2025 TuZhi Gamerz • Made with ❤️"
+    "footer": "© 2025 Made with ❤️ TuZhi Codes"
   }
 }
