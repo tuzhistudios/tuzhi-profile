@@ -69,7 +69,12 @@
         "glow": "rgba(88,101,242,0.35)"
       }
     ],
+    
     "about": "🐰 A Dreamer Who Never Sleeps !! 🐰\nDeveloper | Gamer | Content Creator",
+    "decoration": {
+      "file": "",
+      "layer": "frame"
+    },
     "footer": "© 2025 Made with ❤️ TuZhi Codes"
   }
 }
