@@ -1,537 +1,472 @@
 /* ═══════════════════════════════════════════════
-   TuZhi Deco — spooky-ring
-   Spooky-cute creature ring — no rotation
-   Glowing pulse + light sparkle animation only
+   TuZhi Deco — spooky-ring  v2
+   Evil red-dark creature ring
+   • All creatures OUTSIDE avatar circle (r>52)
+   • Red/crimson theme, no pink
+   • Glow only on eyes & light details
+   • No rotation — pulse + flicker only
    ═══════════════════════════════════════════════ */
 (function(){
   const cv = document.getElementById('decoCanvas');
   if(!cv) return;
   const ctx = cv.getContext('2d');
-  const W=160, H=160, CX=80, CY=80;
+  const W=160,H=160,CX=80,CY=80;
 
   /* ── PALETTE ── */
-  const D  = '#150b13';   /* dark body */
-  const D2 = '#1f0e1a';   /* slightly lighter dark */
-  const PK = '#ff3399';   /* main pink */
-  const PK2= '#ff77bb';   /* light pink */
-  const PK3= '#ffaad4';   /* very light pink highlight */
-  const WH = '#ffffff';
+  const BLK  = '#0a0005';
+  const DARK = '#180008';
+  const D2   = '#200010';
+  const RED  = '#cc0000';
+  const RED2 = '#ff2200';
+  const RED3 = '#ff6644';
+  const BLD  = '#8b0000';   /* blood dark */
+  const WH   = '#ffffff';
+
+  /* Safe outer radius — avatar fills r≈50, we start at r=56 */
+  const INNER = 56;   /* nothing drawn inside this */
+  const OUTER = 76;   /* creatures mostly inside this */
 
   let t=0, raf;
 
-  /* ── HELPERS ── */
-  const f = (color,blur,alpha) => {
+  /* ── UTILS ── */
+  const sv = ctx.save.bind(ctx);
+  const rs = ctx.restore.bind(ctx);
+
+  function fill(color, blur, alpha){
     ctx.fillStyle   = color;
     ctx.shadowColor = color;
-    ctx.shadowBlur  = blur||0;
-    ctx.globalAlpha = alpha||1;
-  };
-  const s = (color,w,blur,alpha) => {
+    ctx.shadowBlur  = blur  || 0;
+    ctx.globalAlpha = alpha || 1;
+  }
+  function stroke(color, lw, blur, alpha){
     ctx.strokeStyle = color;
-    ctx.lineWidth   = w||1;
+    ctx.lineWidth   = lw    || 1;
     ctx.shadowColor = color;
-    ctx.shadowBlur  = blur||0;
-    ctx.globalAlpha = alpha||1;
-  };
+    ctx.shadowBlur  = blur  || 0;
+    ctx.globalAlpha = alpha || 1;
+  }
 
-  /* draw X-eye at (x,y) size r */
+  /* polar → canvas coords */
+  function p2c(angle, r){ return [CX + Math.cos(angle)*r, CY + Math.sin(angle)*r]; }
+
+  /* Draw an evil X-eye at (x,y) radius r */
   function xEye(x,y,r,glow){
-    /* eye white circle */
-    ctx.save();
-    f(PK2, 8*glow, 1);
+    sv();
+    /* white eyeball */
+    fill(WH, 10*glow, 0.92);
     ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill();
-    /* X marks */
-    ctx.strokeStyle=D; ctx.lineWidth=r*0.55; ctx.lineCap='round';
-    ctx.shadowBlur=0; ctx.globalAlpha=1;
-    const o=r*0.55;
+    /* red iris */
+    fill(RED2, 6*glow, 0.9);
+    ctx.beginPath(); ctx.arc(x,y,r*0.6,0,Math.PI*2); ctx.fill();
+    /* dark pupil */
+    fill(BLK, 0, 1);
+    ctx.beginPath(); ctx.arc(x,y,r*0.28,0,Math.PI*2); ctx.fill();
+    /* blood X */
+    ctx.strokeStyle=BLD; ctx.lineWidth=r*0.5; ctx.lineCap='round';
+    ctx.shadowColor=RED; ctx.shadowBlur=4*glow; ctx.globalAlpha=0.85;
+    const o=r*0.52;
     ctx.beginPath(); ctx.moveTo(x-o,y-o); ctx.lineTo(x+o,y+o); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(x+o,y-o); ctx.lineTo(x-o,y+o); ctx.stroke();
-    ctx.restore();
+    /* tiny highlight */
+    fill(WH,0,0.8);
+    ctx.beginPath(); ctx.arc(x-r*0.28,y-r*0.28,r*0.18,0,Math.PI*2); ctx.fill();
+    rs();
   }
 
-  /* dot eye at (x,y) */
-  function dotEye(x,y,r,glow){
-    ctx.save();
-    f(PK2,6*glow,1); ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill();
-    f(D,0,1);        ctx.beginPath(); ctx.arc(x,y,r*0.45,0,Math.PI*2); ctx.fill();
-    ctx.restore();
+  /* hollow dot eye */
+  function hollowEye(x,y,r,glow){
+    sv();
+    fill(WH,8*glow,0.85);
+    ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill();
+    fill(RED2,5*glow,0.8);
+    ctx.beginPath(); ctx.arc(x,y,r*0.6,0,Math.PI*2); ctx.fill();
+    fill(BLK,0,1);
+    ctx.beginPath(); ctx.arc(x,y,r*0.3,0,Math.PI*2); ctx.fill();
+    rs();
   }
 
-  /* pink drip from (x,y) going down length l */
-  function drip(x,y,l,w,glow){
-    ctx.save();
-    f(PK, 5*glow, 0.7);
+  /* blood drip */
+  function drip(x,y,len,w,glow){
+    sv();
+    fill(BLD, 3*glow, 0.9);
     ctx.beginPath();
     ctx.moveTo(x-w,y);
-    ctx.quadraticCurveTo(x-w*1.5, y+l*0.5, x, y+l);
-    ctx.quadraticCurveTo(x+w*1.5, y+l*0.5, x+w, y);
+    ctx.quadraticCurveTo(x-w*1.8, y+len*0.6, x, y+len);
+    ctx.quadraticCurveTo(x+w*1.8, y+len*0.6, x+w, y);
     ctx.closePath(); ctx.fill();
-    ctx.restore();
+    /* bright tip drop */
+    fill(RED2, 5*glow, 0.7);
+    ctx.beginPath(); ctx.arc(x, y+len, w*1.1, 0, Math.PI*2); ctx.fill();
+    rs();
   }
 
-  /* ══════════════════════════════════════════
-     CREATURE DRAW FUNCTIONS
-     All coordinated to 160×160 canvas
-  ═════════════════════════════════════════════ */
+  /* ═══════════════════════════════════════════
+     CREATURES — all strictly outside r=INNER
+  ═══════════════════════════════════════════ */
 
-  /* ── A: BAT-CAT creature (left side, 8–10 o'clock) ── */
-  function drawBatCat(g){
-    ctx.save();
-    ctx.shadowColor = PK; ctx.shadowBlur = 10*g;
+  /* ── TOP: SKULL (11–1 o'clock, y ≈ 4–20) ── */
+  function drawSkull(g){
+    sv();
+    const sx=80, sy=10;   /* sits above avatar */
 
-    /* main dark body blob */
-    f(D, 8*g, 1);
+    /* cranium */
+    fill(DARK, 6*g, 1);
+    ctx.beginPath(); ctx.arc(sx,sy,11,0,Math.PI*2); ctx.fill();
+
+    /* jawbone */
+    fill(DARK,4*g,1);
     ctx.beginPath();
-    ctx.moveTo(22,52);
-    ctx.bezierCurveTo(14,38, 20,22, 32,18);   /* left ear point */
-    ctx.bezierCurveTo(38,14, 45,20, 46,28);   /* top of head */
-    ctx.bezierCurveTo(54,20, 62,22, 60,32);   /* right part head */
-    ctx.bezierCurveTo(66,38, 62,50, 55,56);   /* right cheek */
-    ctx.bezierCurveTo(55,65, 48,72, 40,70);   /* chin */
-    ctx.bezierCurveTo(30,74, 18,66, 22,52);   /* left side */
+    ctx.moveTo(sx-8,sy+6);
+    ctx.bezierCurveTo(sx-9,sy+14,sx-5,sy+18,sx,sy+18);
+    ctx.bezierCurveTo(sx+5,sy+18,sx+9,sy+14,sx+8,sy+6);
     ctx.fill();
 
-    /* left wing/ear spike */
-    f(D, 4, 1);
-    ctx.beginPath();
-    ctx.moveTo(22,52);
-    ctx.bezierCurveTo(10,55, 4,46, 8,34);
-    ctx.bezierCurveTo(10,26, 18,22, 22,30);
-    ctx.bezierCurveTo(16,38, 18,48, 22,52);
-    ctx.fill();
-
-    /* inner ear pink */
-    f(PK, 6*g, 0.8);
-    ctx.beginPath();
-    ctx.moveTo(24,48);
-    ctx.bezierCurveTo(16,50, 10,44, 14,36);
-    ctx.bezierCurveTo(16,30, 22,28, 24,34);
-    ctx.bezierCurveTo(20,40, 20,46, 24,48);
-    ctx.fill();
-
-    /* right ear spike */
-    f(D, 4, 1);
-    ctx.beginPath();
-    ctx.moveTo(46,28);
-    ctx.bezierCurveTo(48,16, 52,8, 58,12);
-    ctx.bezierCurveTo(62,14, 62,22, 60,28);
-    ctx.bezierCurveTo(56,24, 50,24, 46,28);
-    ctx.fill();
-
-    /* pink ear inner */
-    f(PK, 5*g, 0.75);
-    ctx.beginPath();
-    ctx.moveTo(48,26);
-    ctx.bezierCurveTo(50,18, 54,12, 58,14);
-    ctx.bezierCurveTo(60,16, 60,22, 58,26);
-    ctx.bezierCurveTo(55,22, 50,22, 48,26);
-    ctx.fill();
-
-    /* skull/face on body — pink teeth + eyes */
-    /* pink skull face */
-    f(PK, 6*g, 0.6);
-    ctx.beginPath(); ctx.arc(40,45, 10, 0, Math.PI*2); ctx.fill();
-    f(D2, 0, 1);
-    ctx.beginPath(); ctx.arc(40,45, 8, 0, Math.PI*2); ctx.fill();
-
-    /* skull eye X */
-    xEye(36, 43, 3, g);
-    xEye(44, 43, 3, g);
-
-    /* pink drips below body */
-    drip(35, 68, 8, 2, g);
-    drip(42, 70, 6, 1.5, g);
-
-    /* small pink heart near left */
-    f(PK, 6*g, 0.7);
-    ctx.beginPath();
-    ctx.moveTo(16,72);
-    ctx.bezierCurveTo(16,69, 12,68, 12,71);
-    ctx.bezierCurveTo(12,74, 16,77, 16,77);
-    ctx.bezierCurveTo(16,77, 20,74, 20,71);
-    ctx.bezierCurveTo(20,68, 16,69, 16,72);
-    ctx.fill();
-
-    ctx.restore();
-  }
-
-  /* ── B: SKULL HEAD (top, 11–12 o'clock) ── */
-  function drawSkullHead(g){
-    ctx.save();
-
-    /* dripping mass connecting left to skull */
-    f(D, 6*g, 1);
-    ctx.beginPath();
-    ctx.moveTo(55,28);
-    ctx.bezierCurveTo(58,18, 64,14, 72,16);
-    ctx.bezierCurveTo(80,14, 86,20, 84,28);
-    ctx.bezierCurveTo(82,36, 76,38, 72,36);
-    ctx.bezierCurveTo(66,38, 58,36, 55,28);
-    ctx.fill();
-
-    /* skull cranium */
-    f(D, 8*g, 1);
-    ctx.beginPath(); ctx.arc(71,22, 11, 0, Math.PI*2); ctx.fill();
-
-    /* jaw / lower skull */
-    f(D, 5*g, 1);
-    ctx.beginPath();
-    ctx.moveTo(62,25);
-    ctx.bezierCurveTo(61,32, 64,38, 71,38);
-    ctx.bezierCurveTo(78,38, 81,32, 80,25);
-    ctx.bezierCurveTo(76,30, 66,30, 62,25);
-    ctx.fill();
-
-    /* teeth */
-    f(PK2, 4*g, 0.9);
-    for(let i=0;i<3;i++){
+    /* teeth — blood red */
+    fill(BLD,3*g,0.9);
+    [-5,-1.5,2,5.5].forEach(ox=>{
       ctx.beginPath();
-      ctx.moveTo(64+i*5.5, 30);
-      ctx.lineTo(65.5+i*5.5, 35);
-      ctx.lineTo(67+i*5.5, 30);
+      ctx.moveTo(sx+ox, sy+11);
+      ctx.lineTo(sx+ox+1.5, sy+16);
+      ctx.lineTo(sx+ox+3, sy+11);
       ctx.fill();
-    }
+    });
 
     /* X eyes */
-    xEye(66, 21, 4, g);
-    xEye(76, 21, 4, g);
+    xEye(sx-5, sy-1, 3.5, g);
+    xEye(sx+5, sy-1, 3.5, g);
 
-    /* pink crack */
-    ctx.save();
-    s(PK, 1, 4*g, 0.7);
-    ctx.beginPath();
-    ctx.moveTo(71,14); ctx.lineTo(70,10); ctx.lineTo(72,6);
-    ctx.stroke();
-    ctx.restore();
+    /* cracks */
+    sv();
+    stroke(RED2, 0.7, 5*g, 0.5);
+    ctx.beginPath(); ctx.moveTo(sx,sy-9); ctx.lineTo(sx-2,sy-4); ctx.lineTo(sx+1,sy); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(sx+6,sy-7); ctx.lineTo(sx+4,sy-3); ctx.stroke();
+    rs();
 
-    /* connecting drip to right */
-    f(D, 5*g, 1);
+    /* blood drips */
+    drip(sx-3, sy+17, 7, 1.8, g);
+    drip(sx+3, sy+17, 5, 1.5, g);
+
+    /* connecting dark mass left */
+    fill(DARK,5*g,1);
     ctx.beginPath();
-    ctx.moveTo(82,24);
-    ctx.bezierCurveTo(90,18, 96,20, 98,26);
-    ctx.bezierCurveTo(96,30, 90,30, 82,28);
+    ctx.moveTo(sx-10,sy+2);
+    ctx.bezierCurveTo(sx-22,sy+0, sx-30,sy+8, sx-28,sy+18);
+    ctx.bezierCurveTo(sx-24,sy+14, sx-18,sy+10, sx-10,sy+10);
     ctx.fill();
 
-    ctx.restore();
+    /* connecting dark mass right */
+    fill(DARK,5*g,1);
+    ctx.beginPath();
+    ctx.moveTo(sx+10,sy+2);
+    ctx.bezierCurveTo(sx+22,sy+0, sx+30,sy+8, sx+28,sy+18);
+    ctx.bezierCurveTo(sx+24,sy+14, sx+18,sy+10, sx+10,sy+10);
+    ctx.fill();
+
+    rs();
   }
 
-  /* ── C: FLOATING EYEBALL (top-right, 1 o'clock) ── */
-  function drawEyeball(g, g2){
-    ctx.save();
-    const ex=108, ey=22, er=11;
-    const pulse = 0.92 + 0.08*Math.sin(t*0.04 + 1);
-
-    /* eyeball outer */
-    f(WH, 10*g2, 0.9);
-    ctx.beginPath(); ctx.arc(ex,ey,er*pulse,0,Math.PI*2); ctx.fill();
-
-    /* pink iris */
-    f(PK, 8*g, 0.85);
-    ctx.beginPath(); ctx.arc(ex,ey,er*0.65*pulse,0,Math.PI*2); ctx.fill();
-
-    /* dark pupil */
-    f(D, 0, 1);
-    ctx.beginPath(); ctx.arc(ex,ey,er*0.3*pulse,0,Math.PI*2); ctx.fill();
-
-    /* white highlight */
-    f(WH, 0, 0.9);
-    ctx.beginPath(); ctx.arc(ex-3*pulse,ey-3*pulse,er*0.18,0,Math.PI*2); ctx.fill();
-
-    /* X vein lines in pink */
-    ctx.save();
-    s(PK2, 0.8, 3*g2, 0.5);
-    ctx.beginPath();
-    ctx.moveTo(ex-er*0.9, ey-2); ctx.lineTo(ex-er*0.45, ey+2);
-    ctx.moveTo(ex+er*0.5, ey-4); ctx.lineTo(ex+er*0.85, ey+3);
-    ctx.moveTo(ex-2, ey-er*0.85); ctx.lineTo(ex+3, ey-er*0.4);
-    ctx.stroke();
-    ctx.restore();
-
-    /* small stem at bottom */
-    f(PK, 4*g, 0.6);
-    ctx.beginPath();
-    ctx.moveTo(ex-2, ey+er*0.9);
-    ctx.bezierCurveTo(ex-3, ey+er+4, ex+3, ey+er+6, ex+2, ey+er+2);
-    ctx.closePath(); ctx.fill();
-
-    ctx.restore();
-  }
-
-  /* ── D: MAIN GHOST (right side, 2–3 o'clock) ── */
+  /* ── RIGHT: GHOST (2–4 o'clock) ── */
   function drawGhost(g){
-    ctx.save();
+    sv();
+    const gx=136, gy=76;
 
-    /* ghost body */
-    f(D, 8*g, 1);
+    /* body */
+    fill(D2, 7*g, 1);
     ctx.beginPath();
-    ctx.moveTo(122,42);
-    ctx.bezierCurveTo(130,36, 138,40, 138,50);
-    ctx.bezierCurveTo(138,62, 132,70, 126,72);
-    ctx.bezierCurveTo(120,68, 114,62, 112,54);
-    ctx.bezierCurveTo(110,46, 114,40, 122,42);
+    ctx.moveTo(gx-8, gy-18);
+    ctx.bezierCurveTo(gx+6,gy-22, gx+16,gy-12, gx+14,gy+2);
+    ctx.bezierCurveTo(gx+14,gy+14, gx+8,gy+22, gx,gy+20);
+    ctx.bezierCurveTo(gx-10,gy+20, gx-16,gy+12, gx-14,gy);
+    ctx.bezierCurveTo(gx-14,gy-10, gx-8,gy-18, gx-8,gy-18);
     ctx.fill();
 
-    /* ghost wavy bottom */
-    f(D, 5*g, 1);
+    /* wavy skirt bottom */
+    fill(D2,4*g,1);
     ctx.beginPath();
-    ctx.moveTo(112,66);
-    ctx.bezierCurveTo(112,72, 116,76, 118,73);
-    ctx.bezierCurveTo(120,76, 124,78, 126,74);
-    ctx.bezierCurveTo(128,78, 132,76, 132,70);
+    ctx.moveTo(gx-14,gy+12);
+    ctx.bezierCurveTo(gx-14,gy+22, gx-8,gy+26, gx-4,gy+22);
+    ctx.bezierCurveTo(gx-2,gy+26, gx+4,gy+28, gx+8,gy+24);
+    ctx.bezierCurveTo(gx+10,gy+28, gx+14,gy+26, gx+14,gy+20);
     ctx.fill();
 
     /* X eyes */
-    xEye(120, 52, 4.5, g);
-    xEye(130, 50, 4.5, g);
+    xEye(gx-5, gy-2, 4, g);
+    xEye(gx+5, gy-4, 4, g);
 
-    /* pink rosy cheeks */
-    f(PK, 4*g, 0.35);
-    ctx.beginPath(); ctx.arc(117,58,4,0,Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.arc(133,56,4,0,Math.PI*2); ctx.fill();
+    /* blood tears */
+    sv();
+    stroke(RED2,1,4*g,0.6);
+    ctx.beginPath(); ctx.moveTo(gx-5,gy+2); ctx.lineTo(gx-6,gy+10); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(gx+5,gy+0); ctx.lineTo(gx+6,gy+8); ctx.stroke();
+    rs();
 
-    /* connecting arc to top-right */
-    f(D, 5*g, 1);
-    ctx.beginPath();
-    ctx.moveTo(122,42);
-    ctx.bezierCurveTo(116,34, 112,26, 106,26);
-    ctx.bezierCurveTo(100,24, 96,28, 98,36);
-    ctx.bezierCurveTo(104,32, 114,36, 122,42);
-    ctx.fill();
+    /* horns */
+    fill(BLD,4*g,1);
+    ctx.beginPath(); ctx.moveTo(gx-8,gy-18); ctx.lineTo(gx-12,gy-28); ctx.lineTo(gx-4,gy-20); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(gx+2,gy-20); ctx.lineTo(gx+8,gy-30); ctx.lineTo(gx+10,gy-20); ctx.fill();
 
-    ctx.restore();
+    rs();
   }
 
-  /* ── E: SMALL GHOST (right-bottom, 4 o'clock) ── */
-  function drawSmallGhost(g){
-    ctx.save();
+  /* ── BOTTOM-RIGHT: SMALL DEMON (4–5 o'clock) ── */
+  function drawDemon(g){
+    sv();
+    const dx=118, dy=118;
 
-    /* small ghost body */
-    f(D, 7*g, 1);
+    fill(DARK,6*g,1);
     ctx.beginPath();
-    ctx.moveTo(120,88);
-    ctx.bezierCurveTo(126,82, 132,86, 132,94);
-    ctx.bezierCurveTo(132,102, 128,108, 122,106);
-    ctx.bezierCurveTo(116,104, 112,98, 114,91);
-    ctx.bezierCurveTo(115,87, 118,86, 120,88);
+    ctx.moveTo(dx,dy-12);
+    ctx.bezierCurveTo(dx+12,dy-14,dx+18,dy-4,dx+16,dy+8);
+    ctx.bezierCurveTo(dx+14,dy+16,dx+6,dy+18,dx,dy+16);
+    ctx.bezierCurveTo(dx-8,dy+16,dx-14,dy+8,dx-12,dy);
+    ctx.bezierCurveTo(dx-10,dy-8,dx-4,dy-12,dx,dy-12);
     ctx.fill();
 
-    /* wavy bottom */
-    f(D, 4*g, 1);
+    /* horns */
+    fill(BLD,4*g,1);
+    ctx.beginPath(); ctx.moveTo(dx-6,dy-12); ctx.lineTo(dx-9,dy-20); ctx.lineTo(dx-2,dy-13); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(dx+4,dy-12); ctx.lineTo(dx+8,dy-20); ctx.lineTo(dx+10,dy-12); ctx.fill();
+
+    /* eyes */
+    hollowEye(dx-4, dy, 3.5, g);
+    hollowEye(dx+4, dy-2, 3.5, g);
+
+    /* mouth */
+    sv();
+    stroke(RED,1.5,4*g,0.8);
     ctx.beginPath();
-    ctx.moveTo(113,102);
-    ctx.bezierCurveTo(113,108, 117,110, 119,107);
-    ctx.bezierCurveTo(121,110, 125,109, 125,105);
-    ctx.fill();
+    ctx.moveTo(dx-4,dy+8);
+    ctx.bezierCurveTo(dx-2,dy+12,dx+2,dy+12,dx+4,dy+8);
+    ctx.stroke();
+    rs();
 
-    /* X eye */
-    xEye(120, 94, 3.5, g);
-    xEye(128, 92, 3.5, g);
+    /* blood drip */
+    drip(dx, dy+15, 8, 2, g);
 
-    /* pink dot on forehead */
-    f(PK2, 5*g, 0.6);
-    ctx.beginPath(); ctx.arc(124,86,2.5,0,Math.PI*2); ctx.fill();
-
-    /* connecting blob */
-    f(D, 4*g, 1);
-    ctx.beginPath();
-    ctx.moveTo(120,88);
-    ctx.bezierCurveTo(120,80, 124,76, 128,76);
-    ctx.bezierCurveTo(134,76, 136,80, 134,86);
-    ctx.bezierCurveTo(130,84, 124,84, 120,88);
-    ctx.fill();
-
-    ctx.restore();
+    rs();
   }
 
-  /* ── F: CAT creature (bottom, 6–7 o'clock) ── */
-  function drawCat(g){
-    ctx.save();
+  /* ── BOTTOM: LARGE DARK MASS (5–7 o'clock) ── */
+  function drawBottomMass(g){
+    sv();
 
-    /* cat body */
-    f(D, 8*g, 1);
+    fill(DARK,7*g,1);
     ctx.beginPath();
-    ctx.moveTo(58,124);
-    ctx.bezierCurveTo(52,118, 50,108, 56,102);
-    ctx.bezierCurveTo(62,96, 72,96, 78,100);
-    ctx.bezierCurveTo(86,96, 94,98, 96,106);
-    ctx.bezierCurveTo(100,112, 96,122, 90,126);
-    ctx.bezierCurveTo(84,130, 72,132, 64,128);
-    ctx.bezierCurveTo(60,127, 58,126, 58,124);
+    ctx.moveTo(60,140);
+    ctx.bezierCurveTo(50,148,40,146,38,136);
+    ctx.bezierCurveTo(36,126,46,120,56,124);
+    ctx.bezierCurveTo(60,116,70,114,76,118);
+    ctx.bezierCurveTo(84,114,92,116,94,124);
+    ctx.bezierCurveTo(102,120,112,126,110,136);
+    ctx.bezierCurveTo(108,146,98,148,90,140);
+    ctx.bezierCurveTo(82,148,72,150,66,144);
+    ctx.bezierCurveTo(64,148,60,148,60,140);
     ctx.fill();
 
-    /* left ear */
-    f(D, 5*g, 1);
-    ctx.beginPath();
-    ctx.moveTo(56,104);
-    ctx.bezierCurveTo(52,96, 48,90, 52,86);
-    ctx.bezierCurveTo(56,84, 60,88, 60,96);
-    ctx.bezierCurveTo(58,100, 56,102, 56,104);
-    ctx.fill();
-    f(PK, 4*g, 0.7);
-    ctx.beginPath();
-    ctx.moveTo(57,102);
-    ctx.bezierCurveTo(54,96, 52,92, 54,89);
-    ctx.bezierCurveTo(56,87, 59,90, 59,96);
-    ctx.fill();
+    /* cat ears on mass */
+    fill(DARK,4*g,1);
+    ctx.beginPath(); ctx.moveTo(56,124); ctx.lineTo(50,112); ctx.lineTo(60,118); ctx.fill();
+    fill(BLD,3*g,0.7);
+    ctx.beginPath(); ctx.moveTo(56,122); ctx.lineTo(52,114); ctx.lineTo(59,119); ctx.fill();
 
-    /* right ear */
-    f(D, 5*g, 1);
-    ctx.beginPath();
-    ctx.moveTo(92,100);
-    ctx.bezierCurveTo(94,92, 98,86, 102,88);
-    ctx.bezierCurveTo(106,90, 104,98, 100,102);
-    ctx.bezierCurveTo(98,100, 94,100, 92,100);
-    ctx.fill();
-    f(PK, 4*g, 0.7);
-    ctx.beginPath();
-    ctx.moveTo(93,100);
-    ctx.bezierCurveTo(95,93, 98,88, 101,90);
-    ctx.bezierCurveTo(103,92, 102,98, 99,101);
-    ctx.fill();
+    fill(DARK,4*g,1);
+    ctx.beginPath(); ctx.moveTo(94,124); ctx.lineTo(100,112); ctx.lineTo(90,118); ctx.fill();
+    fill(BLD,3*g,0.7);
+    ctx.beginPath(); ctx.moveTo(94,122); ctx.lineTo(98,114); ctx.lineTo(91,119); ctx.fill();
 
-    /* dot eyes */
-    dotEye(67, 110, 4.5, g);
-    dotEye(80, 109, 4.5, g);
+    /* hollow eyes */
+    hollowEye(67, 128, 5, g);
+    hollowEye(83, 128, 5, g);
 
-    /* pink nose */
-    f(PK, 6*g, 0.85);
-    ctx.beginPath();
-    ctx.moveTo(73,116); ctx.lineTo(71,119); ctx.lineTo(75,119);
-    ctx.closePath(); ctx.fill();
-
-    /* pink drips */
-    drip(62,126,8,2,g);
-    drip(76,130,6,2,g);
-    drip(88,124,7,2,g);
-
-    /* tail curling left */
-    f(D, 6*g, 1);
-    ctx.beginPath();
-    ctx.moveTo(58,124);
-    ctx.bezierCurveTo(46,128, 38,136, 42,144);
-    ctx.bezierCurveTo(46,152, 56,150, 58,142);
-    ctx.bezierCurveTo(60,136, 56,130, 58,124);
-    ctx.fill();
-
-    /* pink tip of tail */
-    f(PK, 7*g, 0.7);
-    ctx.beginPath();
-    ctx.moveTo(52,144);
-    ctx.bezierCurveTo(48,148, 50,154, 56,152);
-    ctx.bezierCurveTo(60,150, 60,144, 56,142);
-    ctx.fill();
-
-    ctx.restore();
-  }
-
-  /* ── G: DARK CONNECTING MASS (bottom-left + left-center) ── */
-  function drawDarkMass(g){
-    ctx.save();
-
-    /* lower-left blob */
-    f(D, 7*g, 1);
-    ctx.beginPath();
-    ctx.moveTo(28,96);
-    ctx.bezierCurveTo(20,90, 16,80, 20,70);
-    ctx.bezierCurveTo(22,62, 28,58, 34,60);
-    ctx.bezierCurveTo(38,56, 44,56, 46,62);
-    ctx.bezierCurveTo(50,68, 48,76, 44,82);
-    ctx.bezierCurveTo(48,86, 46,96, 38,100);
-    ctx.bezierCurveTo(32,102, 28,100, 28,96);
-    ctx.fill();
-
-    /* skull-face on mass */
-    f(PK, 5*g, 0.5);
-    ctx.beginPath(); ctx.arc(36,76,8,0,Math.PI*2); ctx.fill();
-    f(D2,0,1);
-    ctx.beginPath(); ctx.arc(36,76,6,0,Math.PI*2); ctx.fill();
-    xEye(32,74,2.8,g);
-    xEye(40,74,2.8,g);
-
-    /* teeth row */
-    f(PK2, 3*g, 0.8);
-    for(let i=0;i<3;i++){
+    /* sharp teeth */
+    fill(WH,3*g,0.85);
+    [-8,-4,0,4,8].forEach(ox=>{
       ctx.beginPath();
-      ctx.moveTo(30+i*4, 79);
-      ctx.lineTo(31+i*4, 83);
-      ctx.lineTo(32+i*4, 79);
+      ctx.moveTo(75+ox,134); ctx.lineTo(74+ox,140); ctx.lineTo(77+ox,134);
       ctx.fill();
-    }
+    });
 
-    /* connecting drip up-left toward bat creature */
-    f(D, 5*g, 1);
-    ctx.beginPath();
-    ctx.moveTo(32,62);
-    ctx.bezierCurveTo(28,56, 28,48, 32,44);
-    ctx.bezierCurveTo(34,40, 38,40, 40,44);
-    ctx.bezierCurveTo(38,50, 34,56, 32,62);
-    ctx.fill();
+    /* blood on teeth */
+    fill(RED2,2*g,0.5);
+    ctx.beginPath(); ctx.arc(75,140,2,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(83,140,2,0,Math.PI*2); ctx.fill();
 
-    /* small pink X blob */
-    f(PK, 5*g, 0.55);
-    ctx.beginPath(); ctx.arc(24,88,5,0,Math.PI*2); ctx.fill();
-    f(D2,0,1);
-    ctx.beginPath(); ctx.arc(24,88,3.5,0,Math.PI*2); ctx.fill();
-    xEye(24,88,2,g);
-
-    /* connecting bottom to cat */
-    f(D, 5*g, 1);
-    ctx.beginPath();
-    ctx.moveTo(36,98);
-    ctx.bezierCurveTo(38,108, 44,116, 52,118);
-    ctx.bezierCurveTo(48,112, 40,104, 36,98);
-    ctx.fill();
-
-    ctx.restore();
+    rs();
   }
 
-  /* ── LIGHT SPARKLES around ring ── */
-  function drawSparkles(t, g){
-    const sparkPos = [
-      {a:-0.8, r:75}, {a:0.4, r:72}, {a:1.2, r:74},
-      {a:2.1, r:73}, {a:3.0, r:76}, {a:4.2, r:72},
-      {a:5.1, r:74}, {a:5.8, r:73},
-    ];
-    sparkPos.forEach((sp,i)=>{
-      const pulse = 0.3 + 0.7*Math.abs(Math.sin(t*0.04 + i*0.8));
-      if(pulse < 0.45) return;  /* only show sometimes */
-      const x = CX + Math.cos(sp.a)*sp.r;
-      const y = CY + Math.sin(sp.a)*sp.r;
-      ctx.save();
-      f(PK3, 8*g, pulse*0.7);
-      ctx.beginPath(); ctx.arc(x,y,1.5,0,Math.PI*2); ctx.fill();
-      f(WH, 4, pulse*0.9);
-      ctx.beginPath(); ctx.arc(x,y,0.7,0,Math.PI*2); ctx.fill();
-      ctx.restore();
+  /* ── LEFT: WINGED CREATURE (8–10 o'clock) ── */
+  function drawWing(g){
+    sv();
+
+    /* wing membrane */
+    fill(D2,6*g,1);
+    ctx.beginPath();
+    ctx.moveTo(24,80);
+    ctx.bezierCurveTo(8,70,4,54,12,42);
+    ctx.bezierCurveTo(18,32,28,30,34,38);
+    ctx.bezierCurveTo(28,46,24,60,28,72);
+    ctx.fill();
+
+    /* wing ribs */
+    sv();
+    stroke(BLD,1,3*g,0.55);
+    ctx.beginPath(); ctx.moveTo(12,42); ctx.lineTo(28,60); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(16,36); ctx.lineTo(30,54); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(20,32); ctx.lineTo(32,50); ctx.stroke();
+    rs();
+
+    /* wing tip spikes */
+    fill(DARK,4*g,1);
+    [[6,48],[4,60],[6,72]].forEach(([x,y])=>{
+      ctx.beginPath();
+      ctx.moveTo(x,y); ctx.lineTo(x-4,y-6); ctx.lineTo(x-4,y+6); ctx.closePath(); ctx.fill();
+    });
+
+    /* body bulge */
+    fill(DARK,7*g,1);
+    ctx.beginPath();
+    ctx.moveTo(26,70);
+    ctx.bezierCurveTo(20,60,22,46,30,42);
+    ctx.bezierCurveTo(38,38,46,44,46,54);
+    ctx.bezierCurveTo(46,64,40,72,32,74);
+    ctx.bezierCurveTo(28,74,26,72,26,70);
+    ctx.fill();
+
+    /* single large eye */
+    xEye(36,56,5.5,g);
+
+    /* small secondary eye */
+    hollowEye(26,64,3,g);
+
+    /* blood drips from body */
+    drip(32,72,10,2,g);
+    drip(28,70,7,1.5,g);
+
+    /* connect to skull top-left */
+    fill(DARK,4*g,1);
+    ctx.beginPath();
+    ctx.moveTo(34,38);
+    ctx.bezierCurveTo(36,26,48,18,58,20);
+    ctx.bezierCurveTo(52,24,44,30,40,38);
+    ctx.fill();
+
+    rs();
+  }
+
+  /* ── FLOATING EYEBALL (top-right, standalone) ── */
+  function drawFloatingEye(g,t){
+    sv();
+    const pulse = 0.9 + 0.1*Math.sin(t*0.045);
+    const ex=120, ey=28;
+
+    /* outer glow */
+    fill(RED2, 14*g*pulse, 0.3);
+    ctx.beginPath(); ctx.arc(ex,ey,13*pulse,0,Math.PI*2); ctx.fill();
+
+    /* eyeball */
+    fill(WH,8*g*pulse,0.9);
+    ctx.beginPath(); ctx.arc(ex,ey,10*pulse,0,Math.PI*2); ctx.fill();
+
+    /* red iris */
+    fill(RED2,8*g,0.88);
+    ctx.beginPath(); ctx.arc(ex,ey,6.5*pulse,0,Math.PI*2); ctx.fill();
+
+    /* slit pupil */
+    fill(BLK,0,1);
+    ctx.beginPath();
+    ctx.ellipse(ex,ey,1.8,5*pulse,0,0,Math.PI*2); ctx.fill();
+
+    /* vein lines */
+    sv();
+    stroke(RED2,0.8,4*g,0.45);
+    ctx.beginPath(); ctx.moveTo(ex-9,ey-2); ctx.lineTo(ex-5,ey+2); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(ex+6,ey-6); ctx.lineTo(ex+9,ey); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(ex,ey-9); ctx.lineTo(ex+2,ey-5); ctx.stroke();
+    rs();
+
+    /* highlight */
+    fill(WH,0,0.85);
+    ctx.beginPath(); ctx.arc(ex-3,ey-3,2.5,0,Math.PI*2); ctx.fill();
+
+    /* dangling stem with drop */
+    sv();
+    stroke(BLD,1.2,3*g,0.7);
+    ctx.beginPath(); ctx.moveTo(ex,ey+10); ctx.lineTo(ex+1,ey+18); ctx.stroke();
+    rs();
+    fill(RED2,6*g*pulse,0.8);
+    ctx.beginPath(); ctx.arc(ex+1,ey+20,2.5,0,Math.PI*2); ctx.fill();
+
+    rs();
+  }
+
+  /* ── BLOOD DRIPS from top ring ── */
+  function drawRingDrips(g){
+    sv();
+    /* thin blood arcs at top of creature ring */
+    stroke(BLD,1.5,3*g,0.45);
+    ctx.beginPath();
+    ctx.arc(CX,CY, INNER+1, -Math.PI*0.55, -Math.PI*0.2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(CX,CY, INNER+1, Math.PI*1.25, Math.PI*1.55);
+    ctx.stroke();
+
+    /* drip at bottom */
+    drip(CX,CY+INNER, 10, 2, g*0.7);
+    drip(CX+14,CY+INNER-4, 7, 1.5, g*0.6);
+    drip(CX-12,CY+INNER-2, 6, 1.5, g*0.5);
+    rs();
+  }
+
+  /* ── GLOWING SPARKLE MOTES ── */
+  const motes = Array.from({length:14},(_,i)=>({
+    a : (i/14)*Math.PI*2,
+    r : INNER + 4 + Math.random()*16,
+    phase : Math.random()*Math.PI*2,
+    speed : 0.008 + Math.random()*0.006,
+  }));
+
+  function drawMotes(g){
+    motes.forEach((m,i)=>{
+      m.a += m.speed;
+      const pulse = Math.abs(Math.sin(t*0.05 + m.phase));
+      if(pulse < 0.35) return;
+      const [x,y] = p2c(m.a, m.r);
+      sv();
+      fill(RED2, 8, 0.6*pulse*g);
+      ctx.beginPath(); ctx.arc(x,y,1.4,0,Math.PI*2); ctx.fill();
+      rs();
     });
   }
 
-  /* ── MAIN LOOP ── */
+  /* ══════════════════════════════════════════
+     MAIN LOOP
+  ═══════════════════════════════════════════ */
   function draw(){
     ctx.clearRect(0,0,W,H);
     t++;
-    const g  = 0.75 + 0.25*Math.sin(t*0.035);
-    const g2 = 0.6  + 0.4 *Math.sin(t*0.028 + 2.1);
+    const g  = 0.7  + 0.3 *Math.sin(t*0.032);
+    const g2 = 0.65 + 0.35*Math.sin(t*0.027 + 1.8);
 
-    /* overall pink atmosphere */
-    const rad = ctx.createRadialGradient(CX,CY,32,CX,CY,80);
-    rad.addColorStop(0,   'rgba(0,0,0,0)');
-    rad.addColorStop(0.75,`rgba(210,50,130,${0.06*g})`);
-    rad.addColorStop(1,   `rgba(160,30,100,${0.14*g})`);
-    ctx.save();
-    ctx.beginPath(); ctx.arc(CX,CY,80,0,Math.PI*2);
-    ctx.fillStyle=rad; ctx.globalAlpha=1; ctx.fill();
-    ctx.restore();
+    /* dark atmospheric glow ring */
+    sv();
+    const atm = ctx.createRadialGradient(CX,CY,INNER-4,CX,CY,OUTER+14);
+    atm.addColorStop(0,   `rgba(100,0,0,${0.06*g})`);
+    atm.addColorStop(0.5, `rgba(60,0,0,${0.12*g})`);
+    atm.addColorStop(1,   'rgba(0,0,0,0)');
+    ctx.beginPath(); ctx.arc(CX,CY,OUTER+14,0,Math.PI*2);
+    ctx.fillStyle=atm; ctx.globalAlpha=1; ctx.fill();
+    rs();
 
-    /* draw all elements */
-    drawBatCat(g);
-    drawSkullHead(g);
-    drawEyeball(g, g2);
+    /* all creatures */
+    drawWing(g);
+    drawSkull(g);
+    drawFloatingEye(g2, t);
     drawGhost(g);
-    drawSmallGhost(g2);
-    drawCat(g);
-    drawDarkMass(g);
-    drawSparkles(t, g2);
+    drawDemon(g2);
+    drawBottomMass(g);
+    drawRingDrips(g);
+    drawMotes(g2);
 
     window._decoRaf = raf = requestAnimationFrame(draw);
   }
@@ -539,4 +474,4 @@
   if(window._decoRaf) cancelAnimationFrame(window._decoRaf);
   draw();
 })();
-
+                      
