@@ -62,19 +62,19 @@
         "glow": "rgba(88,101,242,0.35)"
       },
       {
+        "name": "GitHub",
+        "link": "https://github.com/tuzhicodes",
+        "icon": "fab fa-github",
+        "gradient": ["#5865f2", "#4752c4"], 
+        "glow": "rgb(0, 133, 255)"
+      },
+      {
         "name": "YouTube",
         "link": "https://youtube.com/@TuZhiCodes",
         "icon": "fab fa-youtube",
         "gradient": ["#ff0000", "#cc0000"],
         "glow": "rgba(255,0,0,0.35)"
-      },
-      {
-        "name": "GitHub",
-        "link": "https://github.com/tuzhicodes",
-        "icon": "fab fa-github",
-        "gradient": ["#7ac1ff", "#4b16a3"],
-        "glow": "rgb(0, 133, 255)"
-      } 
+      }
     ],
     
     "about": "🐰 A Dreamer Who Never Sleeps !! 🐰\nDeveloper | Gamer | Content Creator",
