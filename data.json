@@ -73,7 +73,7 @@
         "link": "https://github.com/tuzhicodes",
         "icon": "fab fa-github",
         "gradient": ["#7ac1ff", "#4b16a3"],
-        "glow": "rgba(255,0,0,0.35)"
+        "glow": "rgb(0, 133, 255)"
       } 
     ],
     
