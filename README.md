@@ -5,6 +5,8 @@
 
 <h1 align="center">👑 TuZhi Codes</h1>
 
+> Make your Custom Profile batter then Discord by TuZhi Codes
+> 
 <p align="center">
   💻 HTML • JavaScript Developer <br>
   ⚡ Building modern web experiences
