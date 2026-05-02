@@ -31,7 +31,7 @@
      GEOMETRY — octagonal frame
      8 outer points at R+14, clipped clean
   ══════════════════════════════════════ */
-  const FRAME_R  = R + 8;   /* outer frame radius   */
+  const FRAME_R  = R + 5;   /* outer frame radius   */
   const FRAME_R2 = R + 7;    /* inner frame radius   */
   const FRAME_R3 = R + 2;    /* innermost thin ring  */
   const N = 8;               /* octagon sides        */
